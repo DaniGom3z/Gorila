@@ -9,7 +9,7 @@
   <body class="bg-gray-900 text-white min-h-screen flex flex-col justify-between p-4">
     <!-- Gorila -->
     <div id="gorilaContainer" class="w-full flex justify-center mt-4">
-      <img src="../../public/gorilla.webp" alt="Gorila" class="w-32 md:w-40 h-auto" />
+      <img src="gorilla.webp" alt="Gorila" class="w-32 md:w-40 h-auto" />
     </div>
 
     <!-- Área principal -->
@@ -128,7 +128,7 @@
             playersContainer.innerHTML = "";
             players.forEach((id, index) => {
               const playerAvatar = document.createElement("img");
-              playerAvatar.src = "../../public/hombre.webp";
+              playerAvatar.src = "hombre.webp";
               playerAvatar.alt = `Jugador ${index + 1}`;
               playerAvatar.title = `Jugador ${index + 1}`;
               playerAvatar.className = "w-12 h-12 rounded-full border-2 border-green-500";
