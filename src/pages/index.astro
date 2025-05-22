@@ -89,7 +89,7 @@
           const roomId = roomInput.value.trim();
           if (!roomId) return;
 
-          socket = io("http://localhost:3000");
+          socket = io("https://server-kq0v.onrender.com");
           playerId = socket.id;
 
           socket.emit("joinRoom", roomId);
