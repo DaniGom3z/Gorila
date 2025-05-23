@@ -28,15 +28,21 @@
       <!-- Juego -->
       <div id="gameArea" class="mb-4 hidden flex flex-col items-center">
         <div class="flex flex-col w-full gap-2">
+          <!-- “Iniciar Tiempo” oculto hasta que el host reciba “youAreHost” -->
           <button id="startTimerBtn"
-            class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded font-bold transition w-full">
+            class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded font-bold transition w-full hidden"
+            disabled>
             ⏱️ Iniciar Tiempo
           </button>
+
+          <!-- “Atacar al Gorila” inicia deshabilitado -->
           <button id="attackBtn"
             class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded font-bold transition w-full disabled:opacity-50 disabled:cursor-not-allowed"
             disabled>
             💢 Atacar al Gorila
           </button>
+
+          <!-- “Reiniciar Juego” también oculto hasta que el host reciba “showResetButton” -->
           <button id="resetBtn"
             class="bg-yellow-600 hover:bg-yellow-700 px-4 py-2 rounded font-bold transition w-full hidden">
             🔄 Reiniciar Juego
@@ -67,18 +73,18 @@
       import { io } from "https://cdn.socket.io/4.7.2/socket.io.esm.min.js";
 
       let socket;
-      let playerId;
+      let isHost = false; // Bandera para saber si este cliente es host
 
       window.addEventListener("DOMContentLoaded", () => {
-        const joinBtn = document.getElementById("joinBtn");
+        const joinBtn       = document.getElementById("joinBtn");
         const startTimerBtn = document.getElementById("startTimerBtn");
-        const attackBtn = document.getElementById("attackBtn");
-        const resetBtn = document.getElementById("resetBtn");
-        const roomInput = document.getElementById("roomId");
-        const gameArea = document.getElementById("gameArea");
-        const log = document.getElementById("log");
-        const status = document.getElementById("status");
-        const timerDisplay = document.getElementById("timer");
+        const attackBtn     = document.getElementById("attackBtn");
+        const resetBtn      = document.getElementById("resetBtn");
+        const roomInput     = document.getElementById("roomId");
+        const gameArea      = document.getElementById("gameArea");
+        const log           = document.getElementById("log");
+        const status        = document.getElementById("status");
+        const timerDisplay  = document.getElementById("timer");
         const playersContainer = document.getElementById("playersContainer");
 
         const appendLog = (message) => {
@@ -90,14 +96,20 @@
           const roomId = roomInput.value.trim();
           if (!roomId) return;
 
-          socket = io("https://server-kq0v.onrender.com");
-          playerId = socket.id;
+          socket = io("https://server-kq0v.onrender.com"); // Cambia según tu URL de Render
 
           socket.emit("joinRoom", roomId);
           gameArea.classList.remove("hidden");
           appendLog(`🟢 Te uniste a la sala ${roomId}`);
 
           socket.on("notification", (message) => appendLog(`📢 ${message}`));
+
+          socket.on("youAreHost", () => {
+            // Este cliente es el host: muestra y habilita “Iniciar Tiempo”
+            isHost = true;
+            startTimerBtn.classList.remove("hidden");
+            startTimerBtn.disabled = false;
+          });
 
           socket.on("attack", (message) => {
             appendLog(`💥 ${message}`);
@@ -108,7 +120,10 @@
             status.innerText = `🧠 HP del Gorila: ${hp}`;
             if (hp === 0) {
               attackBtn.disabled = true;
-              resetBtn.classList.remove("hidden");
+              // Solo el host mostrará “Reiniciar Juego”
+              if (isHost) {
+                resetBtn.classList.remove("hidden");
+              }
             }
           });
 
@@ -118,12 +133,24 @@
 
           socket.on("timerStopped", (seconds) => {
             timerDisplay.innerText = `⏹️ ¡Tiempo final: ${seconds} s!`;
-            startTimerBtn.disabled = false;
+            // Permitir al host reiniciar
+            if (isHost) {
+              startTimerBtn.disabled = false;
+            }
           });
 
           socket.on("disableStartButton", () => {
+            // Una vez arrancado, deshabilita “Iniciar Tiempo” para el host
             startTimerBtn.disabled = true;
-            attackBtn.disabled = false; // Habilita atacar cuando arranca el cronómetro
+            // Habilita “Atacar” para todos
+            attackBtn.disabled = false;
+          });
+
+          socket.on("showResetButton", () => {
+            // Solo el host recibe esto: muestra “Reiniciar Juego”
+            if (isHost) {
+              resetBtn.classList.remove("hidden");
+            }
           });
 
           socket.on("playersUpdate", (players) => {
@@ -139,12 +166,18 @@
           });
 
           socket.on("gameReset", () => {
-            attackBtn.disabled = true;              // Vuelve a deshabilitar atacar
-            startTimerBtn.disabled = false;         // Habilitar iniciar tiempo
+            // Reiniciar estados en todos
+            attackBtn.disabled     = true;
             resetBtn.classList.add("hidden");
-            status.innerText = "🧠 HP del Gorila: 3000";
+            status.innerText       = "🧠 HP del Gorila: 3000";
             timerDisplay.innerText = "Tiempo: 0 s";
             appendLog("🔄 El juego ha sido reiniciado");
+
+            // Si soy host, vuelvo a mostrar “Iniciar Tiempo”
+            if (isHost) {
+              startTimerBtn.classList.remove("hidden");
+              startTimerBtn.disabled = false;
+            }
           });
         });
 
